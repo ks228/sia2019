@@ -6,7 +6,6 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.StandardPasswordEncoder;
 
 @Configuration
 @EnableWebSecurity
@@ -18,12 +17,18 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter{
 	@Override
 	protected void configure(AuthenticationManagerBuilder auth)
 	throws Exception {
-		auth.jdbcAuthentication()
-			.dataSource(dataSource)
-			.usersByUsernameQuery(
-					"select username, password, enabled from Users where username=?")
-			.authoritiesByUsernameQuery(
-					"select username, authority from UserAuthorities where username=?")
-			.passwordEncoder(new BCryptPasswordEncoder());
+		auth.ldapAuthentication()
+			.userSearchBase("ou=people")
+			.userSearchFilter("(uid={0})")
+			.groupSearchBase("ou=groups")
+			.groupSearchFilter("member={0}")
+			.passwordCompare()
+				.passwordEncoder(new BCryptPasswordEncoder())
+				.passwordAttribute("passcode")
+			.and()
+			.contextSource()
+			//.url("ldap://tacocloud.com:33389/dc=tacocloud,dc=com");
+				.root("dc=tacocloud,dc=com") //configures embedded ldap server
+				.ldif("classpath:users.ldif"); // you need ldif file as well for this in your classpath
 	}
 }
